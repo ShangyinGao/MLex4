@@ -24,7 +24,19 @@ Theta2 = reshape(nn_params((1 + (hidden_layer_size * (input_layer_size + 1))):en
 
 % Setup some useful variables
 m = size(X, 1);
-         
+
+% expand X with bias
+X = [ones(m, 1), X];
+
+% recode the label to vector only containing 0 and 1
+n = size(y, 1);
+yTemp = zeros(n, num_labels);
+for i = 1:n
+    yTemp(i, y(i)) = 1;
+    
+end
+y = yTemp;
+
 % You need to return the following variables correctly 
 J = 0;
 Theta1_grad = zeros(size(Theta1));
@@ -62,21 +74,49 @@ Theta2_grad = zeros(size(Theta2));
 %               and Theta2_grad from Part 2.
 %
 
+% cost function
+% output of hidden layer
+a2 = sigmoid(X*Theta1');
+
+% outoput of output layer hTheta, first expand a2 with bias
+a2 = [ones(size(a2, 1), 1), a2];
+a3 = sigmoid(a2*Theta2');
+
+for i = 1:num_labels
+    J = J+(-y(:, i)'*log(a3(:, i))-(1.-y(:, i))'*log(1.-a3(:, i)))/m;
+    
+end
+
+% Regularized cost function
+J = J+((sumsqr(Theta1(:, 2:end))+sumsqr(Theta2(:, 2:end)))*lambda/(2*m));
+
+% init Delta
+Delta_2 = zeros(size(Theta2));
+Delta_1 = zeros(size(Theta1));
+% calcuate gradient using BackPropagation
+for t = 1:m
+    % step 1: computing the activations
+    a_1 = X(t, :);              % a_1 (1, 401)
+    z_2 = a_1*Theta1';          % z_2 (1, 25)
+    a_2 = sigmoid(z_2);     
+    a_2 = [1, a_2];             % a_2 (1, 26)
+    z_3 = a_2*Theta2';          % z_3 (1, 10)
+    a_3 = sigmoid(z_3);         % a_3 (1, 10)
+    
+    % step 2: computing the error
+    delta_3 = a_3 - y(t, :);    % delta_3 (1, 10)
+    delta_3 = delta_3';
+    delta_2 = (Theta2(:, 2:end)'*delta_3).*sigmoidGradient(z_2)';
+    
+    % step 3: Accumulate the gradient
+    Delta_2 = Delta_2+delta_3*a_2;
+    Delta_1 = Delta_1+delta_2*a_1;
+    
+end
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
+Theta1_grad = Delta_1/m;
+Theta2_grad = Delta_2/m;
 
 
 
@@ -85,7 +125,7 @@ Theta2_grad = zeros(size(Theta2));
 % =========================================================================
 
 % Unroll gradients
-grad = [Theta1_grad(:) ; Theta2_grad(:)];
+grad = [Theta1_grad(: ) ; Theta2_grad(:)];
 
 
 end
